@@ -10,7 +10,9 @@ public class ArticleModel {
         this.id = id;
         this.title = title;
         this.content = content;
+        this.regDate = regDate;
     }
+    public ArticleModel() {}
 
     public void setId(String id) {
         this.id = id;

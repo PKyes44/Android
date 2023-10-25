@@ -1,10 +1,15 @@
 package com.example.communityexample;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -12,6 +17,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -25,8 +31,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private MyRecyclerAdapter mRecyclerAdapter;
     private ArrayList<CommunityListModel> mCommunityList;
-
     private DatabaseReference mDatabase;
+    AppCompatButton writeButton;
+    private int articleCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,29 +48,24 @@ public class MainActivity extends AppCompatActivity {
         /* initiate adapter */
         mRecyclerAdapter = new MyRecyclerAdapter();
 
+        mRecyclerAdapter.setOnItemClickListener(new MyRecyclerAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(int pos) {
+                final CommunityListModel item = mCommunityList.get(pos);
+                Toast.makeText(getApplicationContext(), "onItemClick position : " + item.getTitle(), Toast.LENGTH_SHORT).show();
+                Intent sendIntent = new Intent(getApplicationContext(), DetailActivity.class);
+                sendIntent.putExtra("articleId", item.id);
+                startActivity(sendIntent);
+
+            }
+        });
+
         /* initiate recyclerview */
         mRecyclerView.setAdapter(mRecyclerAdapter);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         mCommunityList = new ArrayList<>();
 
-//        // 현재 날짜 구하기
-//        LocalDate now = null;
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-//            now = LocalDate.now();
-//        }
-//
-//        // 포맷 정의
-//        DateTimeFormatter formatter = null;
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-//            formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-//        }
-//
-//        // 포맷 적용
-//        String formatedNow = "";
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-//            formatedNow = now.format(formatter);
-//        }
         mDatabase = FirebaseDatabase.getInstance().getReferenceFromUrl("https://hackertontemp-default-rtdb.firebaseio.com/");
         mDatabase.child("article").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
             @Override
@@ -73,18 +75,37 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else {
                     Log.d("firebase", String.valueOf(task.getResult().getValue()));
-//                     List<Object> tempList = (List<Object>) task.getResult().getValue();
-//                     List<ArticleModel> articleModelList = new ArrayList<>();
-//                     for (int i = 0; i < tempList.size(); i++) {
-//                         if (tempList.get(i) == null) {
-//                             continue;
-//                         }
-//                         ArticleModel article = (ArticleModel) tempList.get(i);
-//                         mCommunityList.add(new CommunityListModel(article.id, article.title, article.regDate));
-//                     }
-//                    mRecyclerAdapter.setFriendList(mCommunityList);
+                     List<Object> tempList = (List<Object>) task.getResult().getValue();
+                     for (int i = 0; i < tempList.size(); i++) {
+                         if (tempList.get(i) == null) {
+                             continue;
+                         }
+                         Map<String, Object> tmp = (Map<String, Object>) tempList.get(i);
+                         ArticleModel article = new ArticleModel(
+                                 tmp.get("id").toString(),
+                                 tmp.get("title").toString(),
+                                 tmp.get("content").toString(),
+                                 tmp.get("regDate").toString()
+                         );
+                         mCommunityList.add(new CommunityListModel(article.id, article.title, article.regDate));
+                         articleCount++;
+                     }
+                    mRecyclerAdapter.setFriendList(mCommunityList);
                 }
             }
         });
+        mRecyclerAdapter.setFriendList(mCommunityList);
+
+        writeButton = findViewById(R.id.onWriteTap);
+        writeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), WriteActivity.class);
+                intent.putExtra("articleCount", String.valueOf(articleCount));
+                startActivity(intent);
+            }
+        });
+
     }
 }
+
